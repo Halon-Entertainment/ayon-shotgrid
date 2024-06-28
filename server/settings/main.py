@@ -202,6 +202,8 @@ class ShotgridSettings(BaseSettingsModel):
     out in order to for the services to correctly operate.
     """
 
+    enabled: bool = False
+
     shotgrid_server: str = SettingsField(
         default="",
         title="ShotGrid URL",
