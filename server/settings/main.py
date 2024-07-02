@@ -185,13 +185,11 @@ class ClientLoginModel(BaseSettingsModel):
     tray_api_key: ClientLoginDetailsModel = SettingsField(
         default_factory=ClientLoginDetailsModel,
         title="Tray App",
-        scope=["studio"],
     )
 
     env: ClientLoginDetailsModel = SettingsField(
         default_factory=ClientLoginDetailsModel,
         title="Environment Variables",
-        scope=["studio"],
     )
 
 
@@ -209,12 +207,10 @@ class ShotgridSettings(BaseSettingsModel):
         title="ShotGrid URL",
         description="The URL to the ShotGrid Server we want to interact with.",
         example="https://my-site.shotgrid.autodesk.com",
-        scope=["studio"]
     )
     client_login: ClientLoginModel = SettingsField(
         default_factory=ClientLoginModel,
         title="Client login settings",
-        scope=["studio"],
         section="---",
     )
     shotgrid_project_code_field: str = SettingsField(
@@ -235,7 +231,6 @@ class ShotgridSettings(BaseSettingsModel):
             "Whether to try make use of local storage defined in ShotGrid "
             "('Site Preferences -> File Management -> Local Storage') or not."
         ),
-        scope=["studio"],
     )
     shotgrid_local_storage_key: str = SettingsField(
         default="primary",
@@ -245,7 +240,6 @@ class ShotgridSettings(BaseSettingsModel):
             "possible local storages entries to use."
         ),
         example="ayon_storage",
-        scope=["studio"],
     )
     anatomy_preset: str = SettingsField(
         default="_",
@@ -267,5 +261,4 @@ class ShotgridSettings(BaseSettingsModel):
     service_settings: ShotgridServiceSettings = SettingsField(
         default_factory=ShotgridServiceSettings,
         title="Service settings",
-        scope=["studio"],
     )

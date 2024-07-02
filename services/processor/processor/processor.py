@@ -25,6 +25,9 @@ class ShotgridProcessor:
     log = get_logger(__file__)
 
     def __init__(self):
+        pass
+
+    def build(self, project_name):
         """A class to process AYON events of `shotgrid.event` topic.
 
         These events contain an "action" key in the payload, which is
@@ -47,7 +50,7 @@ class ShotgridProcessor:
 
         try:
             ayon_api.init_service()
-            self.settings = ayon_api.get_service_addon_settings()
+            self.settings = ayon_api.get_service_addon_settings(project_name)
             service_settings = self.settings["service_settings"]
 
             self.sg_url = self.settings["shotgrid_server"]
@@ -147,12 +150,14 @@ class ShotgridProcessor:
 
         return handlers_dict
 
-    def get_sg_connection(self):
+    def get_sg_connection(self, project_name):
         """Ensure we can talk to AYON and Shotgrid.
 
         Start connections to the APIs and catch any possible error, we abort if
         this steps fails for any reason.
         """
+
+        self.build(project_name)
 
         if self._sg is None:
             try:
