@@ -348,7 +348,7 @@ class ShotgridListener:
         self.log.info("Dispatched Ayon event with payload:", payload)
 
 
-def listener_main(project_name):
+def leecher_main(project_name):
     ayon_api.init_service()
     shotgrid_listener = ShotgridListener(project_name)
     sys.exit(shotgrid_listener.start_listening())

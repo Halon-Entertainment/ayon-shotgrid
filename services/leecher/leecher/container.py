@@ -1,7 +1,7 @@
 import sys
 import multiprocessing
 
-from .listener import listener_main
+from .leecher import leecher_main
 
 import ayon_api
 
@@ -10,9 +10,9 @@ class WorkerException(Exception):
     pass
 
 
-def start_listener(project_name):
+def start_leecher(project_name):
     try:
-        return listener_main(project_name)
+        return leecher_main(project_name)
     except Exception as e:
         raise WorkerException(e)
 
@@ -23,12 +23,12 @@ def container_main():
 
     def worker(project):
         project_name = project['name']
-        result = start_listener(project_name)
+        result = start_leecher(project_name)
         if result != 0:
             ayon_api.dispatch_event(
                 project_name=project_name,
                 topic="shotgrid.leecher.failure",
-                description="Listener failed",
+                description="Leecher failed",
                 store=True,
                 finished=True
             )
