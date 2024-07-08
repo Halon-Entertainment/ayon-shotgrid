@@ -24,7 +24,7 @@ import ayon_api
 import shotgun_api3
 
 
-class ShotgridListener:
+class ShotgridLeecher:
     log = get_logger(__file__)
 
     def __init__(self, project_name):
@@ -178,7 +178,7 @@ class ShotgridListener:
 
         return last_event_id
 
-    def start_listening(self):
+    def start_leeching(self):
         """Main loop querying the Shotgrid database for new events
 
         Since Shotgrid does not have an event hub per se, we need to query
@@ -350,5 +350,5 @@ class ShotgridListener:
 
 def leecher_main(project_name):
     ayon_api.init_service()
-    shotgrid_listener = ShotgridListener(project_name)
-    sys.exit(shotgrid_listener.start_listening())
+    shotgrid_leecher = ShotgridLeecher(project_name)
+    sys.exit(shotgrid_leecher.start_leeching())
