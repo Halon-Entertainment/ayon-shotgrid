@@ -22,7 +22,8 @@ class ShotgridTransmitter:
     log = get_logger(__file__)
     _sg: shotgun_api3.Shotgun = None
 
-    def __init__(self):
+    def __init__(self, project_name):
+        self.project_name = project_name
         """ Ensure both Ayon and Shotgrid connections are available.
 
         Set up common needed attributes and handle shotgrid connection
@@ -36,7 +37,7 @@ class ShotgridTransmitter:
 
         try:
             ayon_api.init_service()
-            self.settings = ayon_api.get_service_addon_settings()
+            self.settings = ayon_api.get_service_addon_settings(project_name)
             service_settings = self.settings["service_settings"]
 
             self.sg_url = self.settings["shotgrid_server"]
@@ -230,13 +231,14 @@ class ShotgridTransmitter:
                     project_name=project_name,
                     status="finished"
                 )
-            except Exception:
-                self.log.error(
-                    "Error processing event", exc_info=True)
+            except Exception as e:
+                self.log.error("Error processing event", exc_info=True)
+                self.log.error(f"Transmitter encountered an error: {e}")
+                self.log.error(traceback.format_exc())
 
                 ayon_api.update_event(
                     event["id"],
-                    project_name=project_name,
+                    project_name=self.project_name,
                     status="failed",
                     payload={
                         "message": traceback.format_exc(),
@@ -244,7 +246,7 @@ class ShotgridTransmitter:
                 )
 
 
-def service_main():
+def transmitter_main(project_name):
     ayon_api.init_service()
-    shotgrid_transmitter = ShotgridTransmitter()
+    shotgrid_transmitter = ShotgridTransmitter(project_name)
     sys.exit(shotgrid_transmitter.start_processing())

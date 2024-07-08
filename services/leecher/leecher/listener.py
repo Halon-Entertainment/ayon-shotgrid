@@ -27,7 +27,8 @@ import shotgun_api3
 class ShotgridListener:
     log = get_logger(__file__)
 
-    def __init__(self):
+    def __init__(self, project_name):
+        self.project_name = project_name
         """Ensure both Ayon and Shotgrid connections are available.
 
         Set up common needed attributes and handle shotgrid connection
@@ -37,7 +38,7 @@ class ShotgridListener:
         self.log.info("Initializing the Shotgrid Listener.")
 
         try:
-            self.settings = ayon_api.get_service_addon_settings()
+            self.settings = ayon_api.get_service_addon_settings(project_name)
             service_settings = self.settings["service_settings"]
 
             self.sg_url = self.settings["shotgrid_server"]
@@ -190,83 +191,98 @@ class ShotgridListener:
 
         last_event_id = None
 
+
         while True:
-            sg_projects = self.sg_session.find(
-                "Project", filters=[["sg_ayon_auto_sync", "is", True]]
-            )
-            sg_filters = self._build_shotgrid_filters(sg_projects)
+            try:
+                sg_projects = self.sg_session.find(
+                    "Project", filters=[["sg_ayon_auto_sync", "is", True]]
+                )
+                sg_filters = self._build_shotgrid_filters(sg_projects)
 
-            self.log.debug(f"Last Event ID: {last_event_id}")
+                self.log.debug(f"Last Event ID: {last_event_id}")
 
-            if not sg_filters:
+                if not sg_filters:
+                    self.log.debug(
+                        f"Leecher waiting {self.shotgrid_polling_frequency} "
+                        "seconds. No projects with AYON Auto Sync found."
+                    )
+                    time.sleep(self.shotgrid_polling_frequency)
+                    continue
+
+                if last_event_id is None:
+                    last_event_id = self._get_last_event_processed(sg_filters)
+
+                sg_filters.append(["id", "greater_than", last_event_id])
+
+                self.log.debug(f"Shotgrid filters: {sg_filters}")
+
+                try:
+                    events = self.sg_session.find(
+                        "EventLogEntry",
+                        sg_filters,
+                        SG_EVENT_QUERY_FIELDS,
+                        order=[{"column": "id", "direction": "asc"}],
+                        limit=50,
+                    )
+
+                    self.log.debug(f"Found {len(events)} events in Shotgrid.")
+
+                    sg_projects_by_id = {
+                        sg_project["id"]: sg_project
+                        for sg_project in sg_projects
+                    }
+                    supported_event_types = []
+                    if events:
+                        supported_event_types = self._get_supported_event_types()
+
+                    for event in events:
+                        if not event:
+                            continue
+
+                        ignore_event = False
+                        last_event_id = event["id"]
+
+                        if (
+                            event["event_type"].endswith("_Change")
+                            and event["attribute_name"].replace("sg_", "")
+                            not in self.custom_sg_attribs
+                        ):
+                            # events related to custom attributes changes
+                            # check if event was caused by api user
+                            ignore_event = self._is_api_user_event(event)
+
+                        elif event["event_type"] in supported_event_types:
+                            # events related to changes in entities we track
+                            # check if event was caused by api user
+                            ignore_event = self._is_api_user_event(event)
+
+                        if ignore_event:
+                            self.log.info(f"Ignoring event: {pformat(event)}")
+                            continue
+
+                        self.send_shotgrid_event_to_ayon(event, sg_projects_by_id)
+
+                except Exception:
+                    self.log.error(traceback.format_exc())
+
                 self.log.debug(
-                    f"Leecher waiting {self.shotgrid_polling_frequency} "
-                    "seconds. No projects with AYON Auto Sync found."
+                    f"Leecher waiting {self.shotgrid_polling_frequency} seconds..."
                 )
                 time.sleep(self.shotgrid_polling_frequency)
                 continue
-
-            if last_event_id is None:
-                last_event_id = self._get_last_event_processed(sg_filters)
-
-            sg_filters.append(["id", "greater_than", last_event_id])
-
-            self.log.debug(f"Shotgrid filters: {sg_filters}")
-
-            try:
-                events = self.sg_session.find(
-                    "EventLogEntry",
-                    sg_filters,
-                    SG_EVENT_QUERY_FIELDS,
-                    order=[{"column": "id", "direction": "asc"}],
-                    limit=50,
+            except Exception as e:
+                ayon_api.dispatch_event(
+                    project_name=self.project_name,
+                    topic="shotgrid.leecher.error",
+                    description=str(e),
+                    store=True,
+                    finished=True,
+                    payload={
+                        "message": traceback.format_exc()
+                    },
                 )
-
-                self.log.debug(f"Found {len(events)} events in Shotgrid.")
-
-                sg_projects_by_id = {
-                    sg_project["id"]: sg_project
-                    for sg_project in sg_projects
-                }
-                supported_event_types = []
-                if events:
-                    supported_event_types = self._get_supported_event_types()
-
-                for event in events:
-                    if not event:
-                        continue
-
-                    ignore_event = False
-                    last_event_id = event["id"]
-
-                    if (
-                        event["event_type"].endswith("_Change")
-                        and event["attribute_name"].replace("sg_", "")
-                        not in self.custom_sg_attribs
-                    ):
-                        # events related to custom attributes changes
-                        # check if event was caused by api user
-                        ignore_event = self._is_api_user_event(event)
-
-                    elif event["event_type"] in supported_event_types:
-                        # events related to changes in entities we track
-                        # check if event was caused by api user
-                        ignore_event = self._is_api_user_event(event)
-
-                    if ignore_event:
-                        self.log.info(f"Ignoring event: {pformat(event)}")
-                        continue
-
-                    self.send_shotgrid_event_to_ayon(event, sg_projects_by_id)
-
-            except Exception:
+                self.log.error(f"Listener encountered an error: {e}")
                 self.log.error(traceback.format_exc())
-
-            self.log.debug(
-                f"Leecher waiting {self.shotgrid_polling_frequency} seconds..."
-            )
-            time.sleep(self.shotgrid_polling_frequency)
-            continue
 
     def _is_api_user_event(self, event: dict[str, Any]) -> bool:
         """Check if the event was caused by an API user.
@@ -332,7 +348,7 @@ class ShotgridListener:
         self.log.info("Dispatched Ayon event with payload:", payload)
 
 
-def service_main():
+def listener_main(project_name):
     ayon_api.init_service()
-    shotgrid_listener = ShotgridListener()
+    shotgrid_listener = ShotgridListener(project_name)
     sys.exit(shotgrid_listener.start_listening())

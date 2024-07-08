@@ -1,7 +1,6 @@
-from .listener import ShotgridListener, service_main
+from .container import container_main
 
 
 __all__ = (
-    "service_main",
-    "ShotgridListener",
+    "container_main",
 )

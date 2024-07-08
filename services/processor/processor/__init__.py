@@ -1,10 +1,6 @@
-from .processor import (
-    ShotgridProcessor,
-    service_main,
-)
+from .container import container_main
 
 
 __all__ = (
-    "ShotgridProcessor",
-    "service_main",
+    "container_main",
 )

@@ -24,7 +24,8 @@ class ShotgridProcessor:
     _sg: shotgun_api3.Shotgun = None
     log = get_logger(__file__)
 
-    def __init__(self):
+    def __init__(self, project_name):
+        self.project_name = project_name
         """A class to process AYON events of `shotgrid.event` topic.
 
         These events contain an "action" key in the payload, which is
@@ -47,7 +48,7 @@ class ShotgridProcessor:
 
         try:
             ayon_api.init_service()
-            self.settings = ayon_api.get_service_addon_settings()
+            self.settings = ayon_api.get_service_addon_settings(project_name)
             service_settings = self.settings["service_settings"]
 
             self.sg_url = self.settings["shotgrid_server"]
@@ -269,12 +270,22 @@ class ShotgridProcessor:
                 )
                 ayon_api.update_event(source_event["id"], status="finished")
 
-            except Exception:
+            except Exception as e:
+                ayon_api.dispatch_event(
+                    project_name=self.project_name,
+                    topic="shotgrid.processor.error",
+                    description=str(e),
+                    store=True,
+                    finished=True,
+                    payload={
+                        "message": traceback.format_exc()
+                    },
+                )
+                self.log.error(f"Processor encountered an error: {e}")
                 self.log.error(traceback.format_exc())
 
 
-def service_main():
+def processor_main(project_name):
     ayon_api.init_service()
-
-    shotgrid_processor = ShotgridProcessor()
+    shotgrid_processor = ShotgridProcessor(project_name)
     sys.exit(shotgrid_processor.start_processing())
