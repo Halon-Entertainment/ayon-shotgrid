@@ -1,5 +1,5 @@
-from .listener import service_main
+from .container import container_main
 
 
 if __name__ == "__main__":
-    service_main()
+    container_main()

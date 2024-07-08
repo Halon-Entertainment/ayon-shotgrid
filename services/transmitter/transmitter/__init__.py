@@ -1,10 +1,6 @@
-from .transmitter import (
-    ShotgridTransmitter,
-    service_main,
-)
+from .container import container_main
 
 
 __all__ = (
-    "ShotgridTransmitter",
-    "service_main",
+    "container_main",
 )
