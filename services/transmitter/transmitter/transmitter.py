@@ -23,20 +23,23 @@ class ShotgridTransmitter:
     _sg: shotgun_api3.Shotgun = None
 
     def __init__(self):
+        pass
+
+    def build(self, project_name):
         """ Ensure both Ayon and Shotgrid connections are available.
 
-        Set up common needed attributes and handle shotgrid connection
-        closure via signal handlers.
+                Set up common needed attributes and handle shotgrid connection
+                closure via signal handlers.
 
-        Args:
-            func (Callable, None): In case we want to override the default
-                function we cast to the processed events.
-        """
+                Args:
+                    func (Callable, None): In case we want to override the default
+                        function we cast to the processed events.
+                """
         self.log.info("Initializing the Shotgrid Transmitter.")
 
         try:
             ayon_api.init_service()
-            self.settings = ayon_api.get_service_addon_settings()
+            self.settings = ayon_api.get_service_addon_settings(project_name)
             service_settings = self.settings["service_settings"]
 
             self.sg_url = self.settings["shotgrid_server"]
@@ -83,7 +86,7 @@ class ShotgridTransmitter:
             }
             self.sg_enabled_entities = (
                 self.settings["compatibility_settings"]
-                             ["shotgrid_enabled_entities"])
+                ["shotgrid_enabled_entities"])
             try:
                 self.sg_polling_frequency = int(
                     service_settings["polling_frequency"]
@@ -95,12 +98,13 @@ class ShotgridTransmitter:
             self.log.error("Unable to get Addon settings from the server.")
             raise e
 
-    def get_sg_connection(self):
+    def get_sg_connection(self, project_name):
         """Ensure we can talk to AYON and Shotgrid.
 
         Start connections to the APIs and catch any possible error, we abort if
         this steps fails for any reason.
         """
+        self.build(project_name)
 
         if self._sg is None:
             try:
@@ -213,7 +217,7 @@ class ShotgridTransmitter:
                 project_code = ay_project.get("code")
 
                 hub = AyonShotgridHub(
-                    self.get_sg_connection(),
+                    self.get_sg_connection(project_name),
                     project_name,
                     project_code,
                     sg_project_code_field=self.sg_project_code_field,

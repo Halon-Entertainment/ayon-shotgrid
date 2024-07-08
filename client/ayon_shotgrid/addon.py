@@ -21,8 +21,10 @@ class ShotgridAddon(AYONAddon, ITrayAddon, IPluginPaths):
     tray_wrapper = None
 
     def initialize(self, studio_settings):
+
         addon_settings = studio_settings[self.name]
         client_login_info = addon_settings["client_login"]
+        self.enabled = addon_settings["enabled"]
 
         log.debug(
             f"Initializing {self.name} addon with "

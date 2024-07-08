@@ -17,8 +17,10 @@ def process_event(
     trigger this function, where we traverse a whole project, either in
     Shotgrid or AYON, and replicate it's structure in the other platform.
     """
+    project_name = event.get("project_name")
+
     hub = AyonShotgridHub(
-        sg_processor.get_sg_connection(),
+        sg_processor.get_sg_connection(project_name),
         event.get("project_name"),
         event.get("project_code"),
         sg_project_code_field=sg_processor.sg_project_code_field,
