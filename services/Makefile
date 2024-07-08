@@ -1,5 +1,4 @@
 ADDON_VERSION := $(shell grep "version" ../package.py | cut -d' ' -f3 | tr -d '"')
-IMAGE := ynput/ayon-shotgrid-$(SERVICE):$(ADDON_VERSION)
 SERVICE = $(error Please specify the service to build with 'SERVICE', for example: 'make build SERVICE=leecher')
 
 default:
@@ -16,29 +15,27 @@ default:
 	@echo ""
 	@echo "Targets:"
 	@echo "  build        Build docker image."
-	@echo "  build-all    Build docker image for 'leecher', 'procesor' and 'transmitter'."
+	@echo "  build-all    Build docker image for 'leecher', 'processor', and 'transmitter'."
 	@echo "  clean        Remove local images."
 	@echo "  clean-build  Remove local images and build without docker cache."
 	@echo "  dev          Run a service locally"
 
-
 build:
-	docker build --network=host -t $(IMAGE) -f $(SERVICE)/Dockerfile .
+	docker build --network=host -t ayon-shotgrid-$(SERVICE):$(ADDON_VERSION) -f $(SERVICE)/Dockerfile .
 
 build-all:
-	$(foreach service,leecher processor transmitter, docker build --network=host -t ynput/ayon-shotgrid-$(service):$(ADDON_VERSION) -f $(service)/Dockerfile . &)
+	$(foreach service,leecher processor transmitter, docker build --network=host -t ayon-shotgrid-$(service):$(ADDON_VERSION) -f $(service)/Dockerfile . &)
 
 clean:
-	if docker images "$(IMAGE)"; then \
-		docker rmi $(IMAGE); \
+	if docker images "ayon-shotgrid-$(SERVICE)"; then \
+		docker rmi ayon-shotgrid-$(SERVICE); \
 	fi
 
 clean-build: clean
-	docker build --network=host --no-cache -t $(IMAGE) -f $(SERVICE)/Dockerfile .
+	docker build --network=host --no-cache -t ayon-shotgrid-$(SERVICE):$(ADDON_VERSION) -f $(SERVICE)/Dockerfile .
 
 clean-build-all:
-	$(foreach service,leecher processor transmitter, docker build --network=host --no-cache -t ynput/ayon-shotgrid-$(service):$(ADDON_VERSION) -f $(service)/Dockerfile . &)
-
+	$(foreach service,leecher processor transmitter, docker build --network=host --no-cache -t ayon-shotgrid-$(service):$(ADDON_VERSION) -f $(service)/Dockerfile . &)
 
 dev:
 	-ln -s $(CURDIR)/shotgrid_common/* $(CURDIR)/$(SERVICE)
@@ -52,9 +49,9 @@ dev:
 		--attach=stdout \
 		--attach=stderr \
 		--network=host \
-		$(IMAGE) python -m $(SERVICE)
+		ayon-shotgrid-$(SERVICE):$(ADDON_VERSION) python -m $(SERVICE)
 
 	find $(CURDIR)/$(SERVICE) -type l -delete
 
 shell:
-	docker run --rm -u ayonuser -ti -v $(CURDIR)/$(SERVICE)/$(SERVICE):/service:Z $(IMAGE) /bin/sh
+	docker run --rm -u ayonuser -ti -v $(CURDIR)/$(SERVICE)/$(SERVICE):/service:Z ayon-shotgrid-$(SERVICE):$(ADDON_VERSION) /bin/sh
