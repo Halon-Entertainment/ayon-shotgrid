@@ -231,12 +231,14 @@ class ShotgridTransmitter:
                     project_name=project_name,
                     status="finished"
                 )
-            except Exception:
+            except Exception as e:
                 self.log.error("Error processing event", exc_info=True)
+                self.log.error(f"Transmitter encountered an error: {e}")
+                self.log.error(traceback.format_exc())
 
                 ayon_api.update_event(
                     event["id"],
-                    project_name=project_name,
+                    project_name=self.project_name,
                     status="failed",
                     payload={
                         "message": traceback.format_exc(),
